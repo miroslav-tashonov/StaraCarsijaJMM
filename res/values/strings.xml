@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Стара Чаршија</string>
+    <string name="action_settings">Settings</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="restorani">Ресторани</string>
+    <string name="zlatari">Златари</string>
+    <string name="kafici">Кафулиња и барови</string>
+    <string name="spomenici">Споменици и музеи</string>
+    <string name="zanaetcii">Занаетчии</string>
+    <string name="objekti">Објекти</string>
+    <string name="title_activity_details">Details</string>
+	
+</resources>
