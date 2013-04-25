@@ -1,4 +1,6 @@
 package mk.finki.ukim.jmm.staracarsija;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
 
 import android.os.Bundle;
 import android.app.Activity;
@@ -7,17 +9,13 @@ import android.view.Menu;
 import android.widget.TextView;
 
 public class Details extends Activity {
-
+int k = 100;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_details);
 		
-		Intent intent = getIntent();
-	    String message = intent.getStringExtra(Objekti.EXTRA_MESSAGE1);
 		
-		TextView text = (TextView) findViewById(R.id.textViewSome);
-		text.setText("Додади рејтинг на "+message);
 	}
 
 	@Override

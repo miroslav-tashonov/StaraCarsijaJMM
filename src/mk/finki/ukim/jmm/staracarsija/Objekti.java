@@ -2,62 +2,51 @@
 	
 	package mk.finki.ukim.jmm.staracarsija;
 
-	import android.app.*;
+	import android.webkit.WebViewClient;
+	import android.graphics.Bitmap;
+	import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.List;
+import java.util.Random;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+
+import android.app.*;
 	import android.content.*;
 	import android.os.*;
 	import android.util.Log;
 	import android.view.*;
 import android.view.View.OnClickListener;
+import android.webkit.WebView;
 import android.widget.*;
 
 	public class Objekti extends ListActivity {
-
+		String nekojString ;
+		private static Context context;
+		private static final String TAG = "Objekti";
+		ProgressDialog progress ;
+		
 		public final static String EXTRA_MESSAGE1 = "mk.finki.ukim.jmm.staracarsija.MESSAGE";
-		float[] ratings = new float[]{5,4,5,4,5,4,5,3,1,2,3};
+		float[] ratings ;
 		
 		@Override
 		protected void onCreate(Bundle savedInstanceState) {
 			super.onCreate(savedInstanceState);
-			setContentView(R.layout.rating_main);
+			context = getApplicationContext();
+			progress = new ProgressDialog(this);
+			progress.setTitle("Loading");
+			progress.setMessage("Please wait to load locations ...");
+			progress.show();
+			  
 			
-			Intent intent = getIntent();
-		    String message = intent.getStringExtra(MainActivity.EXTRA_MESSAGE);
-			
-			String[] values =new String[]{};
-   
-		    //Тука ќе се лоадираат локалите од база
-		    if(message.equals("Ресторани"))
-		    {
-		     values = new String[] { "Ресторан1", "Ресторан2", "Ресторан3", "Ресторан4", "Ресторан5", "Ресторан6","Ресторан7", "Ресторан8", "Ресторан9",
-		 	        "Ресторан10", "Ресторан11" };
-		    }
-		    else if(message.equals("Златари"))
-		    {
-		     values = new String[] { "Златара1", "Златара2", "Златара3", "Златара4", "Златара5", "Златара6","Златара7", "Златара8", "Златара9",
-		        "Златара10", "Златара11" };
-		    }
-		    else if(message.equals("Кафулиња и барови"))
-		    {
-		     values = new String[] { "Кафиќ1", "Кафиќ2", "Кафиќ3", "Кафиќ4", "Кафиќ5", "Кафиќ6","Кафиќ7", "Кафиќ8", "Кафиќ9",
-		        "Кафиќ10", "Кафиќ11" };
-		    }
-		    else if(message.equals("Споменици и музеи"))
-		    {
-		     values = new String[] { "Знаменитост1", "Знаменитост2", "Знаменитост3", "Знаменитост4", "Знаменитост5", "Знаменитост6","Знаменитост7", "Знаменитост8", "Знаменитост9",
-		        "Знаменитост10", "Знаменитост11" };
-		    }
-		    else if(message.equals("Занаетчии"))
-		    {
-		     values = new String[] { "Занаетчија1", "Занаетчија2", "Занаетчија3", "Занаетчија4", "Занаетчија5", "Занаетчија6","Занаетчија7", "Занаетчија8", "Занаетчија9",
-		        "Занаетчија10", "Занаетчија11" };
-		    }
-			
-		   
-			
-			RatingAdapter adapter = new RatingAdapter(this, R.layout.activity_objekti, values);
-			setListAdapter(adapter);
-			
-			
+		    
 		}
 		@Override
 	    protected void onListItemClick(ListView l, View v, int position, long id) {
@@ -71,6 +60,10 @@ import android.widget.*;
 		protected void onStart() {
 			// TODO Auto-generated method stub
 			super.onStart();
+			readWebpage();
+			
+			
+			
 			//Metodot vo koj kje se postavi konekcija do bazata na podatoci.
 			//Konekcijata se vospostavuva vo ovoj metod zatoa shto ova e metodot koj sledi po rekreiranjeto na
 			//aktivnosta, odnosno po onStop(). Kodot za metodot onRestart kje bide postaven vo ovoj metod
@@ -114,64 +107,287 @@ import android.widget.*;
 	}
 		
 		
-		class RatingAdapter extends ArrayAdapter<String> {
-			Context ctx;
-			String[] values;
-			public RatingAdapter(Context context, int textViewResourceId, String[] objects) {
-				super(context, textViewResourceId, objects);
-				ctx = context;
-				values = objects;
-			}
-			
-			@Override
-			public View getView(int position, View convertView, ViewGroup parent) {
-				View row = convertView;
+		
+		
+		
+		private class DownloadWebPageTask extends AsyncTask<String, Void, String> {
+			private CommentsDataSource datasource;
+		    @Override
+		    protected String doInBackground(String... urls) {
+		    	
+
+		    	datasource = new CommentsDataSource(Objekti.this);
+			    datasource.open();
+			    				
 				Intent intent = getIntent();
 			    String message = intent.getStringExtra(MainActivity.EXTRA_MESSAGE);
+			    
+    	        String my = "";
+    	        SharedPreferences mPrefs = getSharedPreferences("change", MODE_APPEND);
+    		    String mString = mPrefs.getString("change", "false");    	        
+    	        
+    	        if(mString == "false")
+    	        {
+    	        try {
+    	        	JSONParser jParser = new JSONParser();
+        	        // getting JSON string from URL
+        	        JSONObject json = jParser.getJSONFromUrl(urls[0]);
+    	            // Getting Array of Contacts 
+    	            JSONArray response = json.getJSONObject("response").getJSONArray("groups");
+    	            
+    	            
+    	            // looping through All Venues
+    	            for(int i = 0; i < response.length(); i++){
+    	                JSONObject c = response.getJSONObject(i);
+    	 
+    	                // Storing each json item in variable
+    	                JSONArray venues = c.getJSONArray("items");
+    	                for(int j = 0; j < venues.length(); j++){
+    	                	
+    	                	JSONObject cc = venues.getJSONObject(j);
+    	                	
+    	                	String name = cc.getString("name");
+    	                	JSONObject loc = cc.getJSONObject("location");
+    	                	String ll = loc.getString("lat")+","+loc.getString("lng");
+    	                	JSONObject stats = cc.getJSONObject("stats");
+    	                	float rating = stats.getInt("tipCount")/2;
+    	                	JSONArray cat = cc.getJSONArray("categories");
+    	                	JSONObject obj0 = cat.getJSONObject(0);
+    	                	String imeCat = obj0.getString("name");
+    	                	
+    	                	Comment comment = new Comment();
+    	    			    comment.setIme(name);
+    	    			    if(imeCat.contains("Restaurant") || imeCat.contains("Beer") || imeCat.contains("Brewery"))
+    	    			    {
+    	    			    	comment.setTip(0);
+    	    			    }
+    	    			    else if(imeCat.contains("Gold"))
+    	    			    {
+    	    			    	comment.setTip(1);
+    	    			    }
+    	    			    else if(imeCat.contains("Café")||imeCat.contains("Coffee")||imeCat.contains("Bar")||imeCat.contains("Tea")||imeCat.contains("Club"))
+    	    			    {
+    	    			    	comment.setTip(2);
+    	    			    }
+    	    			    else if(imeCat.contains("Antique"))
+    	    			    {
+    	    			    	comment.setTip(4);
+    	    			    }
+    	    			    else
+    	    			    {
+    	    			    	comment.setTip(3);
+    	    			    }
+    	    			    comment.setRating(rating);
+    	    			    comment.setCoords(ll);
+    	                	datasource.createComment(comment);
+    	                	
+    	                	if(j ==0 ){
+    	                		my = my + name;
+    	                	}
+    	                	my = my + " - " + name ; 
+    	                }
+    	                
+       	            }
+    	            
+    	        } catch (JSONException e) {
+    	            e.printStackTrace();
+    	        }
+    	        	SharedPreferences.Editor mEditor = mPrefs.edit();
+    	        	mEditor.putString("change", "true").commit();
+    	        }
+    	        
+    	        
+    	        List<Comment> values1 = datasource.getAllComments();
+			    ratings = new float[values1.size()];
+			    
+				String[] values =new String[]{};
+				my = "";
+			    //Тука ќе се лоадираат локалите од база
+			    if(message.equals("Ресторани"))
+			    {
+			    		    for(int i = 0 ; i < values1.size();i++){
+			    		    	if(i==0){
+			    		    		if(values1.get(i).getTip()==0)
+			    		    		{
+			    		    			my = values1.get(i).getIme()+" " +values1.get(i).getCoords();
+			    		    			ratings[0] = (float) values1.get(i).getRating()/2;
+			    		    		}
+			    		    	}
+			    		    	else
+			    		    	{
+			    		    		if(values1.get(i).getTip()==0)
+			    		    		{
+			    		    			my = my + "--"+ values1.get(i).getIme()+" " +values1.get(i).getCoords();
+			    		    			ratings[i] = (float) values1.get(i).getRating()/2;
+			    		    		}
+			    		    	}
+			    		    }
+			        
+			    }
+			    else if(message.equals("Златари"))
+			    {
+			    	for(int i = 0 ; i < values1.size();i++){
+	    		    	if(i==0){
+	    		    		if(values1.get(i).getTip()==1)
+	    		    		{
+	    		    			my = values1.get(i).getIme()+" " +values1.get(i).getCoords();
+	    		    			ratings[0] = (float) values1.get(i).getRating()/2;
+	    		    		}
+	    		    	}
+	    		    	else
+	    		    	{
+	    		    		if(values1.get(i).getTip()==1)
+	    		    		{
+	    		    			my = my + "--"+ values1.get(i).getIme()+" " +values1.get(i).getCoords();
+	    		    			ratings[i] = (float) values1.get(i).getRating()/2;
+	    		    		}
+	    		    	}
+	    		    }
+			    }
+			    else if(message.equals("Кафулиња и барови"))
+			    {
+			    	for(int i = 0 ; i < values1.size();i++){
+	    		    	if(i==0){
+	    		    		if(values1.get(i).getTip()==2)
+	    		    		{
+	    		    			my = values1.get(i).getIme()+" " +values1.get(i).getCoords();
+	    		    			ratings[0] = (float) values1.get(i).getRating()/2;
+	    		    		}
+	    		    	}
+	    		    	else
+	    		    	{
+	    		    		if(values1.get(i).getTip()==2)
+	    		    		{
+	    		    			my = my + "--"+ values1.get(i).getIme()+" " +values1.get(i).getCoords();
+	    		    			ratings[i] = (float) values1.get(i).getRating()/2;
+	    		    		}
+	    		    	}
+	    		    }
+			    }
+			    else if(message.equals("Споменици и музеи"))
+			    {
+			    	for(int i = 0 ; i < values1.size();i++){
+	    		    	if(i==0){
+	    		    		if(values1.get(i).getTip()==3)
+	    		    		{
+	    		    			my = values1.get(i).getIme()+" " +values1.get(i).getCoords();
+	    		    			ratings[0] = (float) values1.get(i).getRating()/2;
+	    		    		}
+	    		    	}
+	    		    	else
+	    		    	{
+	    		    		if(values1.get(i).getTip()==3)
+	    		    		{
+	    		    			my = my + "--"+ values1.get(i).getIme()+" " +values1.get(i).getCoords();
+	    		    			ratings[i] = (float) values1.get(i).getRating()/2;
+	    		    		}
+	    		    	}
+	    		    }
+			    }
+			    else if(message.equals("Занаетчии"))
+			    {
+			    	for(int i = 0 ; i < values1.size();i++){
+	    		    	if(i==0){
+	    		    		if(values1.get(i).getTip()==4)
+	    		    		{
+	    		    			my = values1.get(i).getIme()+" " +values1.get(i).getCoords();
+	    		    			ratings[0] = (float) values1.get(i).getRating()/2;
+	    		    		}
+	    		    	}
+	    		    	else
+	    		    	{
+	    		    		if(values1.get(i).getTip()==4)
+	    		    		{
+	    		    			my = my + "--"+ values1.get(i).getIme()+" " +values1.get(i).getCoords();
+	    		    			ratings[i] = (float) values1.get(i).getRating()/2;
+	    		    		}
+	    		    	}
+	    		    }
+			    }
 				
-				if(row==null) { // Object reuse
-					LayoutInflater inflater = getLayoutInflater();
-					row = inflater.inflate(R.layout.activity_objekti, parent, false);
+				return my;
+		    }
+
+		    @Override
+		    protected void onPostExecute(String result) {
+		      //textView.setText(result);
+		    	
+		    	
+		    	RatingAdapter adapter = new RatingAdapter(Objekti.this, R.layout.activity_objekti, result.split("--"));
+				setListAdapter(adapter);
+				
+				progress.dismiss();
+		    }
+		  }
+
+		  public void readWebpage() {
+		    DownloadWebPageTask task = new DownloadWebPageTask();
+		    task.execute(new String[] { "https://api.foursquare.com/v2/venues/search?ll=42.000453,21.436043&client_id=OQ3UZKC5P33EEWKP3CWRCQYZZZ020LZ5I5EN4BLRR4MK23IC&client_secret=CY0GGCJ0CY25DMGYIGEWBJ1LRF3AVCTS1M2N3KMLWR1UJ5QA" });
+
+		  }
+		
+		  
+		  class RatingAdapter extends ArrayAdapter<String> {
+				Context ctx;
+				String[] values;
+				public RatingAdapter(Context context, int textViewResourceId, String[] objects) {
+					super(context, textViewResourceId, objects);
+					ctx = context;
+					values = objects;
 				}
-				if (message.startsWith("Ресторани")) {
-					ImageView imageView = (ImageView) row.findViewById(R.id.icona);
-				    imageView.setImageResource(R.drawable.restoran);
-				    }
-				    else if (message.startsWith("Златари")) {
-				    	ImageView imageView = (ImageView) row.findViewById(R.id.icona);
-					    imageView.setImageResource(R.drawable.gold);
-				      }
-				    else if (message.startsWith("Споменици")) {
-				    	ImageView imageView = (ImageView) row.findViewById(R.id.icona);
-					    imageView.setImageResource(R.drawable.spomenik);
-				      }
-				    else if (message.startsWith("Занаетчии")) {
-				    	ImageView imageView = (ImageView) row.findViewById(R.id.icona);
-					    imageView.setImageResource(R.drawable.zanaetcii50);
-				      }
-				    else {
-				    	ImageView imageView = (ImageView) row.findViewById(R.id.icona);
-					    imageView.setImageResource(R.drawable.kafe);
-				    }
 				
-				
-				
-				TextView tv = (TextView)row.findViewById(R.id.textView1);
-				tv.setText(values[position]);
-				RatingBar rb = (RatingBar) row.findViewById(R.id.ratingBar1);
-				rb.setRating(ratings[position]);
-				rb.setTag(position);
-				rb.setOnRatingBarChangeListener(new RatingBar.OnRatingBarChangeListener() {
-					public void onRatingChanged(RatingBar ratingBar, float rating,
-							boolean fromUser) {
-						if(!fromUser) return;
-						int index = (Integer)(ratingBar.getTag());
-						ratings[index] = rating;
+				@Override
+				public View getView(int position, View convertView, ViewGroup parent) {
+					View row = convertView;
+					Intent intent = getIntent();
+				    String message = intent.getStringExtra(MainActivity.EXTRA_MESSAGE);
+
+				    
+				    
+					if(row==null) { // Object reuse
+						LayoutInflater inflater = getLayoutInflater();
+						row = inflater.inflate(R.layout.activity_objekti, parent, false);
 					}
-				});
-				return row;
+					if (message.startsWith("Ресторани")) {
+						ImageView imageView = (ImageView) row.findViewById(R.id.icona);
+					    imageView.setImageResource(R.drawable.restoran);
+					    }
+					    else if (message.startsWith("Златари")) {
+					    	ImageView imageView = (ImageView) row.findViewById(R.id.icona);
+						    imageView.setImageResource(R.drawable.gold);
+					      }
+					    else if (message.startsWith("Споменици")) {
+					    	ImageView imageView = (ImageView) row.findViewById(R.id.icona);
+						    imageView.setImageResource(R.drawable.spomenik);
+					      }
+					    else if (message.startsWith("Занаетчии")) {
+					    	ImageView imageView = (ImageView) row.findViewById(R.id.icona);
+						    imageView.setImageResource(R.drawable.zanaetcii50);
+					      }
+					    else {
+					    	ImageView imageView = (ImageView) row.findViewById(R.id.icona);
+						    imageView.setImageResource(R.drawable.kafe);
+					    }
+					
+					
+					
+					TextView tv = (TextView)row.findViewById(R.id.textView1);
+					tv.setText(values[position]);
+					RatingBar rb = (RatingBar) row.findViewById(R.id.ratingBar1);
+					rb.setRating(ratings[position]);
+					rb.setTag(position);
+					rb.setOnRatingBarChangeListener(new RatingBar.OnRatingBarChangeListener() {
+						public void onRatingChanged(RatingBar ratingBar, float rating,
+								boolean fromUser) {
+							if(!fromUser) return;
+							int index = (Integer)(ratingBar.getTag());
+							ratings[index] = rating;
+						}
+					});
+					return row;
+				}
+				
+				
 			}
-			
-			
-		}
+		
 	}

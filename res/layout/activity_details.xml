@@ -1,30 +1,7 @@
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    >
+<?xml version="1.0" encoding="utf-8"?>
 
-    <TextView
-        android:id="@+id/textView1Det"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Тука ќе се лоадираат од база работи поврзани со објект од старата скопска чаршија(мапа , ќе се рејтува страната , слика итн ...)" />
-
-    <RatingBar
-        android:id="@+id/ratingBar1"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/textView1Det"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="62dp" />
-
-    <TextView
-        android:id="@+id/textViewSome"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/textView1Det"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="27dp"
-        android:text="nesto" />
-
-</RelativeLayout>
+<fragment xmlns:android="http://schemas.android.com/apk/res/android"
+          android:id="@+id/map"
+          android:layout_width="match_parent"
+          android:layout_height="match_parent"
+          android:name="com.google.android.gms.maps.MapFragment"/>
